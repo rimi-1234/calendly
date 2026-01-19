@@ -50,5 +50,5 @@ This project is a custom Node.js integration with the **Calendly v2 API**. It al
 │       └── calendly.js      # Main Logic (Availability, Questions, Links)
 ├── find_correct_uri.js      # Utility: Finds your Event URI
 ├── test_script.js           # Test: Runs full logic check (Availability + Questions)
-├── getFreshLink.js          # Test: Generates a real booking link
+├── run_integration.js        # Test: Generates a real booking link
 └── .env                     # Your API Keys (Not committed to git)
