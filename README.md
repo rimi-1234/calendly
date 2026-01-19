@@ -3,7 +3,7 @@ Use this to test logic instantly in the terminal.
 
 Bash
 
-node run_direct.js
+node getFreshLink.js
 
 after that 
 🚀 Starting Direct Function Tests...
