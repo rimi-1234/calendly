@@ -1,6 +1,6 @@
 const getCalendlyClient = require('../config/client');
 
-// Initialize the client once (Function 1 usage)
+// Initialize the client once
 const client = getCalendlyClient();
 
 /**
@@ -108,6 +108,7 @@ const getBookingFields = async (eventTypeUri) => {
 /**
  * [Function 4] Create Booking Link
  * Handles Name, Email, Guests, Date, Time, and Custom Answers
+ * ✅ UPDATED: Now handles Arrays (Checkboxes) correctly!
  */
 const createBookingLink = async (eventTypeUri, bookingData) => {
   try {
@@ -137,8 +138,14 @@ const createBookingLink = async (eventTypeUri, bookingData) => {
     // Custom Answers
     if (bookingData.customAnswers && Array.isArray(bookingData.customAnswers)) {
       bookingData.customAnswers.forEach((ans, index) => {
-        if(ans) {
-             params.append(`a${index + 1}`, ans);
+        if (ans) {
+          // ✅ FIX: If the answer is an Array (like checkboxes), add each option separately
+          if (Array.isArray(ans)) {
+            ans.forEach(option => params.append(`a${index + 1}`, option));
+          } else {
+            // If it's just a single string (Text or Radio), add it once
+            params.append(`a${index + 1}`, ans);
+          }
         }
       });
     }
