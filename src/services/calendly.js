@@ -110,57 +110,48 @@ const getBookingFields = async (eventTypeUri) => {
  * Handles Name, Email, Guests, Date, Time, and Custom Answers
  * ✅ UPDATED: Now handles Arrays (Checkboxes) correctly!
  */
-const createBookingLink = async (eventTypeUri, bookingData) => {
-  try {
-    // 1. Create a Single-Use Scheduling Link
-    const linkResponse = await client.post('/scheduling_links', {
-      max_event_count: 1,
-      owner: eventTypeUri,
-      owner_type: 'EventType'
-    });
+//Function 4: Create Actual Booking
 
-    const bookingUrl = linkResponse.data.resource.booking_url;
+/**
+ * [Function 4] Create Actual Booking
+ * Directly posts booking data to the Calendly Scheduling API.
+ */
+const createActualBooking = async (eventTypeUri, bookingData) => {
+    try {
+        const startTime = `${bookingData.date}T${bookingData.time}:00Z`;
 
-    // 2. Map the data to URL parameters
-    const params = new URLSearchParams();
+        const payload = {
+            event_type: eventTypeUri,
+            start_time: startTime,
+            invitee: {
+                name: bookingData.name,
+                email: bookingData.email,
+                timezone: bookingData.timezone || 'Asia/Dhaka',
+            },
+            // ✅ FIX: Match the location kind to the one set in your dashboard
+            location: {
+                kind: "physical", 
+                location: "Via durazzo 28" 
+            },
+            questions_and_answers: (bookingData.answers || []).map((ans, index) => ({
+                question: ans.question,
+                answer: String(ans.value),
+                position: index 
+            }))
+        };
 
-    // Standard params
-    params.append('name', bookingData.name);
-    params.append('email', bookingData.email);
-    
-    if (bookingData.guests) {
-      params.append('guests', bookingData.guests);
+        const response = await client.post('/invitees', payload);
+        return { success: true, event_uri: response.data.resource.uri, status: 'booked' };
+
+    } catch (error) {
+        // Detailed logging to help you see the exact mismatch if it fails again
+        console.error("❌ Actual Booking Failed:", error.response?.data || error.message);
+        throw error;
     }
-
-    if (bookingData.date) params.append('date', bookingData.date); 
-    if (bookingData.time) params.append('time', bookingData.time); 
-
-    // Custom Answers
-    if (bookingData.customAnswers && Array.isArray(bookingData.customAnswers)) {
-      bookingData.customAnswers.forEach((ans, index) => {
-        if (ans) {
-          // ✅ FIX: If the answer is an Array (like checkboxes), add each option separately
-          if (Array.isArray(ans)) {
-            ans.forEach(option => params.append(`a${index + 1}`, option));
-          } else {
-            // If it's just a single string (Text or Radio), add it once
-            params.append(`a${index + 1}`, ans);
-          }
-        }
-      });
-    }
-
-    return `${bookingUrl}?${params.toString()}`;
-
-  } catch (error) {
-    console.error("Error in createBookingLink:", error.response?.data || error.message);
-    throw error;
-  }
 };
-
 // Export the functions as an object
 module.exports = {
   checkAvailability,
   getBookingFields,
-  createBookingLink
+  createActualBooking
 };
