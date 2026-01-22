@@ -49,6 +49,10 @@ const params = {
   timezone: "Asia/Dhaka",
   targetDate: "2026-01-30",
   time: "12:00",
+  checkWithRange: {
+        from: "2025-09-28",
+        to: "2025-10-28",
+  },
   bookingInformation: {
     name: "Test User",
     email: "test.user@example.com",
