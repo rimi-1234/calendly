@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import * as bookingController from '../controllers/booking.mjs';
 const router = express.Router();
-const bookingController = require('../controllers/booking');
+
 
 // POST http://localhost:3000/api/booking/availability
 router.post('/availability', bookingController.checkSlot);

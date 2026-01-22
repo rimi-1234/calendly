@@ -1,4 +1,4 @@
-const calendlyService = require('../services/calendly');
+import * as calendlyService from '../services/calendly.mjs';
 const EVENT_URI = process.env.CALENDLY_EVENT_URI;
 
 // Handle /availability (Function 2)
