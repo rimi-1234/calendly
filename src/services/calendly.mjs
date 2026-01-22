@@ -82,6 +82,7 @@ const checkAvailability = async (integration, params, onStream) => {
  * Detect if a Calendly custom field is actually invitee info (Name/Email),
  * so it should NOT be part of questions_and_answers.
  */
+
 const isInviteeField = (field) => {
   if (!field) return false;
 
@@ -92,31 +93,43 @@ const isInviteeField = (field) => {
     .toLowerCase()
     .trim();
 
-  if (name === 'full_name' || name === 'name' || name === 'fullname') return true;
-  if (name === 'email' || name === 'email_address' || name === 'emailaddress') return true;
+  // Check internal name keys
+  const isNameKey = ['full_name', 'name', 'fullname', 'full_name'].includes(name);
+  const isEmailKey = ['email', 'email_address', 'emailaddress'].includes(name);
 
-  if (label === 'name' || label === 'full name') return true;
-  if (label === 'email' || label === 'email address') return true;
+  // Check human-readable labels
+  const isNameLabel = ['name', 'full name'].includes(label);
+  const isEmailLabel = ['email', 'email address'].includes(label);
 
-  return false;
+  return isNameKey || isEmailKey || isNameLabel || isEmailLabel;
 };
 
 /**
  * [Function 3] Get Booking Fields
- * ✅ UPDATED: exclude invitee fields so your a1/a2 mapping matches QUESTIONS only
+ * ✅ FIXED: Removed hardcoded "30 Minute Meeting"
+ * ✅ ADDED: Normalization for robust event matching
  */
-const getBookingFields = async (integration) => {
+const getBookingFields = async (integration, params) => {
   try {
-    const event = integration.keys.events.find(e => e.eventName === "30 Minute Meeting");
+    // Normalization helper for event names
+    const normalize = (s) => (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    // Get the event name from params, defaulting to "Test Event" if not provided
+    const targetEventName = params?.eventName || "Test Event";
+
+    const event = integration.keys.events.find(e => 
+      normalize(e.eventName) === normalize(targetEventName)
+    );
 
     if (!event || !event.customFields) {
-      throw new Error("Event configuration missing in integration object.");
+      throw new Error(`Event configuration for "${targetEventName}" missing in integration object.`);
     }
 
-    // ✅ Exclude Name/Email
+    // ✅ Exclude Name/Email so a1, a2, etc. only apply to custom questions
     const questionFields = event.customFields.filter(f => !isInviteeField(f));
 
     const mappedFields = questionFields.map((field, index) => {
+      // Remove newlines and asterisks for a cleaner UI display
       const cleanLabel = String(field.label || '').replace(/\\n|\n|\*/g, '').trim();
 
       return {
@@ -125,7 +138,7 @@ const getBookingFields = async (integration) => {
         type: field.type,
         required: !!field.required,
         options: field.options ? field.options.map(opt => opt.label) : [],
-        answer_key: `a${index + 1}`,
+        answer_key: `a${index + 1}`, // Maps to Calendly's URL parameters (a1, a2...)
         position: index
       };
     });
@@ -185,6 +198,8 @@ const createActualBooking = async (integration, params, onStream) => {
 
     for (const field of calendarFields) {
       const { name, required, label } = field;
+     console.log(name, required, label );
+     
 
 
       let val = undefined;
@@ -192,12 +207,17 @@ const createActualBooking = async (integration, params, onStream) => {
       // Identity logic: Extract Name/Email from top-level or answers array
       if (normalize(name) === 'fullname' || normalize(label) === 'name') {
         val = bookingInformation.name;
+
+        console.log( val);
+        
       
 
 
 
       } else if (normalize(name) === 'email' || normalize(label) === 'email') {
         val = bookingInformation.email;
+        console.log( val);
+        
        
 
       } else {
@@ -232,36 +252,30 @@ const createActualBooking = async (integration, params, onStream) => {
 
     // This creates the array Calendly expects
 // 5. TRANSFORM FOR CALENDLY API
-const questions_and_answers = calendarFields
-  .filter(f => {
-    const n = normalize(f.name);
-    const l = normalize(f.label);
-    // STAGE 1: Aggressively remove anything that looks like Name or Email
-    return !['fullname', 'email', 'name', 'full_name'].includes(n) && 
-           !l.includes('name') && !l.includes('email');
-  })
-  .map((f, index) => {
-    const rawValue = values[f.name];
-    let processedAnswer = Array.isArray(rawValue) 
-      ? rawValue.join(', ') 
-      : String(rawValue || '').trim();
+// 5. TRANSFORM FOR CALENDLY API
+// 5. TRANSFORM FOR CALENDLY API
+// 1. IMPROVED FILTER: Strictly remove Name and Email
+    const questions_and_answers = calendarFields
+      .filter(f => {
+        const n = normalize(f.name);
+        const l = normalize(f.label);
+        return !n.includes('name') && !n.includes('email') && !l.includes('name') && !l.includes('email');
+      })
+      .map((f, index) => {
+        // Find answer by matching normalized labels
+        const userAns = (bookingInformation.answers || []).find(a => 
+          normalize(a.name) === normalize(f.name) || 
+          normalize(a.question) === normalize(f.label)
+        );
 
-    // STAGE 2: Try to match the dashboard's expected label format
-    // Many Calendly forms use \n* instead of a space.
-    let finalLabel = f.label;
-    if (f.required && !finalLabel.includes('\n*')) {
-        finalLabel = finalLabel.replace(' *', '\n*');
-    }
+        const processedAnswer = String(userAns?.value || "").trim();
 
-    return {
-      question: finalLabel, 
-      answer: processedAnswer, 
-      position: index
-    };
-  });
-  
-
-
+        return {
+          question: f.label, // ✅ Sends exact label (e.g., "radio quesiton *")
+          answer: processedAnswer, 
+          position: index
+        };
+      });
     // 6. CONSTRUCT FINAL PAYLOAD
     const payload = {
       event_type: eventTypeUri,

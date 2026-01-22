@@ -3,21 +3,19 @@ import * as calendlyService from './src/services/calendly.mjs';
 
 dotenv.config();
 console.log(process.env.CALENDLY_EVENT_URI);
-const integration = {
+ const integration = {
   user: { "$oid": "690a5cb12f4318c6c9ace775" },
   platform: "Calendly",
   keys: {
     accessToken: process.env.CALENDLY_TOKEN,
     events: [
       {
-        eventName: "30 Minute Meeting",
+        eventName: "Test Event",
         eventUri: process.env.CALENDLY_EVENT_URI,
-        scheduling_url: "https://calendly.com/messagemind-europe/30min",
+        scheduling_url: "https://calendly.com/messagemind/test-event",
         customFields: [
-          // Filtered out in mapping, but good to have correct labels
           { name: "full_name", type: "text", label: "Name *", required: true },
           { name: "email", type: "email", label: "Email *", required: true },
-          
           { 
             name: "question_0", 
             type: "textarea", 
@@ -25,18 +23,34 @@ const integration = {
             required: false 
           },
           { 
-            name: "question_2", 
-            type: "radio", 
-            label: "radio quesiton *", // ✅ Exact match for dashboard
-            required: true, 
-            options: [{ label: "Raido1" }, { label: "Raido2" }, { label: "Raido3" }] 
+            name: "question_1", 
+            type: "dropdown", 
+            label: "This is a dropdown", 
+            required: false 
           },
           { 
-            name: "question_1", 
+            name: "question_2", 
             type: "checkbox", 
-            label: "checkbox question *", // ✅ Exact match for dashboard
-            required: true, 
-            options: [{ label: "Hello1" }, { label: "Hello2" }, { label: "Hello3" }] 
+            label: "Checkbozes", // Match dashboard spelling
+            required: false 
+          },
+          { 
+            name: "question_3", 
+            type: "radio", 
+            label: "Radio", 
+            required: false 
+          },
+          { 
+            name: "question_4", 
+            type: "textarea", 
+            label: "Multiple lines\n*", // Match newline asterisk
+            required: true 
+          },
+          { 
+            name: "question_5", 
+            type: "phone", 
+            label: "Phone Number input fields\n*", // Match newline asterisk
+            required: true 
           }
         ]
       }
@@ -44,34 +58,29 @@ const integration = {
   },
   status: "Enabled"
 };
-const params = {
-  eventName: "30 Minute Meeting",
+ const params = {
+  eventName: "Test Event",
   timezone: "Asia/Dhaka",
   targetDate: "2026-01-30",
-  time: "12:00",
+  time: "14:00",
+
   checkWithRange: {
-        from: "2025-09-28",
-        to: "2025-10-28",
+
+    from: "2025-09-28",
+
+    to: "2025-10-28",
+
   },
   bookingInformation: {
-    name: "Test User",
-    email: "test.user@example.com",
+    name: "John Doe",
+    email: "john.doe@example.com",
     answers: [
-      {
-        name: "question_0",
-        question: "Please share anything that will help prepare for our meeting.",
-        value: "Inquiry setup."
-      },
-      {
-        name: "question_2",
-        question: "radio quesiton *", // ✅ Match the asterisk here
-        value: "Raido1" 
-      },
-      {
-        name: "question_1",
-        question: "checkbox question *", // ✅ Match the asterisk here
-        value: "Hello1"
-      }
+      { name: "question_0", question: "Please share anything that will help prepare for our meeting.", value: "Integration test." },
+      { name: "question_1", question: "This is a dropdown", value: "Option 1" },
+      { name: "question_2", question: "Checkbozes", value: "Check1" },
+      { name: "question_3", question: "Radio", value: "radio1" }, // Match case-sensitivity
+      { name: "question_4", question: "Multiple lines\n*", value: "Detailed research notes." },
+      { name: "question_5", question: "Phone Number input fields\n*", value: "+8801711111111" }
     ]
   }
 };
