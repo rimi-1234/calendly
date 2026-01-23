@@ -13,74 +13,104 @@ console.log(process.env.CALENDLY_EVENT_URI);
         eventName: "Test Event",
         eventUri: process.env.CALENDLY_EVENT_URI,
         scheduling_url: "https://calendly.com/messagemind/test-event",
-        customFields: [
-          { name: "full_name", type: "text", label: "Name *", required: true },
-          { name: "email", type: "email", label: "Email *", required: true },
-          { 
-            name: "question_0", 
-            type: "textarea", 
-            label: "Please share anything that will help prepare for our meeting.", 
-            required: false 
-          },
-          { 
-            name: "question_1", 
-            type: "dropdown", 
-            label: "This is a dropdown", 
-            required: false 
-          },
-          { 
-            name: "question_2", 
-            type: "checkbox", 
-            label: "Checkbozes", // Match dashboard spelling
-            required: false 
-          },
-          { 
-            name: "question_3", 
-            type: "radio", 
-            label: "Radio", 
-            required: false 
-          },
-          { 
-            name: "question_4", 
-            type: "textarea", 
-            label: "Multiple lines\n*", // Match newline asterisk
-            required: true 
-          },
-          { 
-            name: "question_5", 
-            type: "phone", 
-            label: "Phone Number input fields\n*", // Match newline asterisk
-            required: true 
-          }
-        ]
+      customFields: [
+  // These are standard invitee fields, usually handled separately from custom_questions
+  { name: "full_name", type: "name", label: "Name *", required: true },
+  { name: "email", type: "email", label: "Email *", required: true },
+  
+  // Custom Questions
+  { 
+    name: "question_0", 
+    type: "text", // Changed from textarea
+    label: "Please share anything that will help prepare for our meeting.", 
+    required: false 
+  },
+  { 
+    name: "question_1", 
+    type: "single_select", // Changed from dropdown
+    label: "This is a dropdown", 
+    required: false,
+    answer_choices: ["Option 1", "Option 2"] // Required for select types
+  },
+  { 
+    name: "question_2", 
+    type: "multi_select", // Changed from checkbox
+    label: "Checkbozes", 
+    required: false,
+    answer_choices: ["Check1", "Check2"] // Required for select types
+  },
+  { 
+    name: "question_3", 
+    type: "single_select", // Changed from radio
+    label: "Radio", 
+    required: false,
+    answer_choices: ["radio1", "radio2"]
+  },
+  { 
+    name: "question_4", 
+    type: "text", // Changed from textarea
+    label: "Multiple lines", 
+    required: true 
+  },
+  { 
+    name: "question_5", 
+    type: "phone_number", // Changed from phone
+    label: "Phone Number input fields", 
+    required: true 
+  }
+]
       }
     ]
   },
   status: "Enabled"
 };
- const params = {
+const params = {
   eventName: "Test Event",
   timezone: "Asia/Dhaka",
-  targetDate: "2026-01-30",
+  targetDate: "2026-01-29",
   time: "14:00",
-
   checkWithRange: {
-
-    from: "2025-09-28",
-
-    to: "2025-10-28",
-
+    from: "2026-01-01",
+    to: "2026-02-01",
   },
   bookingInformation: {
-    name: "John Doe",
+    full_name: "John Doe",
     email: "john.doe@example.com",
-    answers: [
-      { name: "question_0", question: "Please share anything that will help prepare for our meeting.", value: "Integration test." },
-      { name: "question_1", question: "This is a dropdown", value: "Option 1" },
-      { name: "question_2", question: "Checkbozes", value: "Check1" },
-      { name: "question_3", question: "Radio", value: "radio1" }, // Match case-sensitivity
-      { name: "question_4", question: "Multiple lines\n*", value: "Detailed research notes." },
-      { name: "question_5", question: "Phone Number input fields\n*", value: "+8801711111111" }
+    
+    // This array must match the 'Invitee Question and Answer' schema
+    questions_and_answers: [
+      {
+        // Use the actual Question text, not 'question_0'
+        question: "Please share anything that will help prepare for our meeting.",
+        answer: "Integration test.",
+        position: 0
+      },
+      {
+        question: "This is a dropdown",
+        answer: "Option1",
+        position: 1
+      },
+      {
+        question: "Checkbozes",
+        answer: "Check1",
+        position: 2
+      },
+      {
+        question: "Radio",
+        answer: "radio1",
+        position: 3
+      },
+      {
+        // Must match the exact string including the newline and asterisk
+        question: "Multiple lines", 
+        answer: "Detailed research notes.",
+        position: 4
+      },
+      {
+        question: "Phone Number input fields",
+        answer: "+8801711111111",
+        position: 5
+      }
     ]
   }
 };
