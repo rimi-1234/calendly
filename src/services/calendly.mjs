@@ -109,27 +109,48 @@ const isInviteeField = (field) => {
  * ✅ FIXED: Removed hardcoded "30 Minute Meeting"
  * ✅ ADDED: Normalization for robust event matching
  */
-const getBookingFields = async (integration, params) => {
+// Helper to identify standard identity fields vs custom questions
+
+
+
+const getBookingFields = async (integration, params = {}) => { // Default params to empty object
   try {
+    // 1. Safety check: Ensure params exists before destructuring
+    if (!params) {
+      throw new Error("Parameters object is missing.");
+    }
+
+    const {
+      eventName,
+      timezone,
+      targetDate,
+      time,
+      checkWithRange
+    } = params;
+
     // Normalization helper for event names
     const normalize = (s) => (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
-    
-    // Get the event name from params, defaulting to "Test Event" if not provided
-    const targetEventName = params?.eventName || "Test Event";
+
+    // Fallback to "Test Event" if eventName is null/undefined
+    const targetEventName = eventName || "Test Event";
+
+    // 2. Safety check: Ensure integration and events list exist
+    if (!integration?.keys?.events) {
+      throw new Error("Integration configuration or events list is missing.");
+    }
 
     const event = integration.keys.events.find(e => 
       normalize(e.eventName) === normalize(targetEventName)
     );
 
     if (!event || !event.customFields) {
-      throw new Error(`Event configuration for "${targetEventName}" missing in integration object.`);
+      throw new Error(`Event configuration for "${targetEventName}" missing.`);
     }
 
-    // ✅ Exclude Name/Email so a1, a2, etc. only apply to custom questions
+    // 3. Filter out Name/Email (Standard invitee fields)
     const questionFields = event.customFields.filter(f => !isInviteeField(f));
 
     const mappedFields = questionFields.map((field, index) => {
-      // Remove newlines and asterisks for a cleaner UI display
       const cleanLabel = String(field.label || '').replace(/\\n|\n|\*/g, '').trim();
 
       return {
@@ -137,22 +158,35 @@ const getBookingFields = async (integration, params) => {
         label: cleanLabel || "Field",
         type: field.type,
         required: !!field.required,
-        options: field.options ? field.options.map(opt => opt.label) : [],
-        answer_key: `a${index + 1}`, // Maps to Calendly's URL parameters (a1, a2...)
+        options: field.options ? field.options.map(opt => typeof opt === 'string' ? opt : (opt.label || opt)) : [],
+        answer_key: `a${index + 1}`, 
         position: index
       };
     });
 
     return {
       success: true,
-      event_name: event.eventName,
+      event_details: {
+        name: event.eventName,
+        uri: event.eventUri,
+        scheduling_url: event.scheduling_url
+      },
+      booking_context: {
+        timezone: timezone || "UTC", // Default timezone if missing
+        targetDate: targetDate || null,
+        time: time || null,
+        checkWithRange: checkWithRange || null
+      },
       fields: mappedFields
     };
   } catch (error) {
+    // This catches the "undefined" error and returns a clean message instead of crashing
     console.error("❌ Error mapping fields:", error.message);
-    throw error;
+    return { success: false, error: error.message };
   }
 };
+
+
 
 /**
  * [Function 4] Create Booking Link
